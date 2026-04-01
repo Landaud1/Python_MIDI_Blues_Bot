@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets
 import mido
 
-KEY_HEIGHT = 36
+KEY_HEIGHT = 24
 KEY_WIDTH = 75
 
 class PianoKeys(QtWidgets.QWidget):
@@ -12,15 +12,15 @@ class PianoKeys(QtWidgets.QWidget):
         self.__port = port
 
         # Start drawing the keys
-        # I'm going to use this array to haphazardly draw the keys. It represents the c diatonic scale
+        # I'm going to use this array to haphazardly draw the keys. It represents the c major scale
         scale = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1] 
 
-        curr_note = 60 # Start at C4
+        curr_note = 96 # Start at C7
 
         # Starting position
         key_y = 10
 
-        while (curr_note <= 96): # End at C7
+        while (curr_note >= 60): # End at C4
             key_type = scale[(curr_note % 12)]
 
             # Add key
@@ -62,8 +62,8 @@ class PianoKeys(QtWidgets.QWidget):
                 key.raise_()
 
             # Decide next position based on key type
-            if (curr_note < 96):
-                next_key = scale[((curr_note + 1) % 12)]
+            if (curr_note > 60):
+                next_key = scale[((curr_note - 1) % 12)]
                 # adjacent white notes get full width
                 if key_type == next_key:
                     key_y += KEY_HEIGHT
@@ -71,7 +71,7 @@ class PianoKeys(QtWidgets.QWidget):
                     key_y += KEY_HEIGHT/2
             
             # iterate
-            curr_note += 1
+            curr_note -= 1
 
         
 class Key(QtWidgets.QPushButton):
