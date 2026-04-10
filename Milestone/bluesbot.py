@@ -26,6 +26,12 @@ class MainWindow(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addWidget(self.piano)
 
+        # Play midi
+        self.play_midi_button = QtWidgets.QPushButton()
+        self.play_midi_button.setText("Play MIDI")
+        self.play_midi_button.pressed.connect(self._play_midi)
+        self.layout.addWidget(self.play_midi_button)
+
         # Load midi
         self.load_midi_button = QtWidgets.QPushButton()
         self.load_midi_button.setText("Load MIDI")
@@ -37,12 +43,6 @@ class MainWindow(QtWidgets.QWidget):
         self.save_midi_button.setText("Save MIDI")
         self.save_midi_button.pressed.connect(self._save_midi)
         self.layout.addWidget(self.save_midi_button)
-
-        # Play midi
-        self.play_midi_button = QtWidgets.QPushButton()
-        self.play_midi_button.setText("Play MIDI")
-        self.play_midi_button.pressed.connect(self._play_midi)
-        self.layout.addWidget(self.play_midi_button)
 
         # Convert midi
         self.convert_midi_button = QtWidgets.QPushButton()

@@ -117,6 +117,7 @@ def convert_diatonic(music_file):
     return new_mid
 
 def reload_file(music_file):
+    """Recreates a midi file, used to fix a bug when playing back after appending a note"""
     new_mid = MidiFile()
 
     for original_track in music_file.tracks:
@@ -134,5 +135,5 @@ def reload_file(music_file):
             else:
                 # Copy meta messages and control changes
                 new_track.append(msg)
-                
+
     return new_mid

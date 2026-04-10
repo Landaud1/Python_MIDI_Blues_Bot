@@ -1,4 +1,0 @@
-Libraries to install:
-PySide6
-mido
-python-rtmidi
