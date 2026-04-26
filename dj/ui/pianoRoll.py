@@ -1,5 +1,6 @@
 from PySide6 import QtWidgets
 import mido
+import midiFunctions as mf
 
 KEY_HEIGHT = 24
 KEY_WIDTH = 75
@@ -9,7 +10,10 @@ class PianoKeys(QtWidgets.QWidget):
     def __init__(self, port):
         super().__init__()
 
+        # Initial values
         self.__port = port
+        self.__mid = None
+        self.__keys = []
 
         # Start drawing the keys
         # I'm going to use this array to haphazardly draw the keys. It represents the c major scale
@@ -70,9 +74,23 @@ class PianoKeys(QtWidgets.QWidget):
                 else:
                     key_y += KEY_HEIGHT/2
             
+            # Keep list of keys
+            self.__keys.append(key)
+
             # iterate
             curr_note -= 1
 
+    def setMidi(self, mid):
+        self.__mid = mid
+        
+        for key in self.__keys:
+            key.setMidi(self.__mid)
+
+    def setPort(self, port):
+        self.__port = port
+
+        for key in self.__keys:
+            key.setPort(self.__port)
         
 class Key(QtWidgets.QPushButton):
 
@@ -81,11 +99,22 @@ class Key(QtWidgets.QPushButton):
 
         self.__port = port
         self.__note = note
+        self.__mid = None
         self.pressed.connect(self._on_click)
+    
+    def setPort(self, port):
+        self.__port = port
 
     def _on_click(self):
-        # Just plays the note
-        msg = mido.Message('note_on', note=self.__note)
+        # plays the note
+        msg = mido.Message('note_on', note=self.__note, time=0, velocity=64)
         self.__port.send(msg)
+        # msg = mido.Message('note_off', note=self.__note, time=256)
+        # self.__port.send(msg)
 
-    
+        # Appends the note to current file
+        if not self.__mid == None:
+            mf.append_note(self.__note, 128, self.__mid)
+        
+    def setMidi(self, mid):
+        self.__mid = mid
