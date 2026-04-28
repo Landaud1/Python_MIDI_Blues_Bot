@@ -10,7 +10,11 @@ class Sequence():
         self.__notes = []
 
     def addNote(self, note):
+        note.show()
         self.__notes += [note]
+
+    def removeNote(self, note):
+        self.__notes.remove(note)
 
 # "Note" class definition (used to store note information before construction a song)
 class Note(QtWidgets.QWidget):
@@ -65,3 +69,8 @@ class Note(QtWidgets.QWidget):
         painter = QPainter(self)
         painter.setBrush(QColor(50, 170, 50))
         painter.drawRect(0, 0, self.width(), self.height())
+
+    # dies when double clicked
+    def mouseDoubleClickEvent(self, event):
+        self.parent().removeNote(self)
+        self.deleteLater()

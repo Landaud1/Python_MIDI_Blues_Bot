@@ -42,6 +42,9 @@ class PianoRoll(QtWidgets.QWidget):
         self.piano = PianoKeys(self.__port)
         self.layout.addWidget(self.piano)
 
+    def removeNote(self, note):
+        self.__sequence.removeNote(note)
+
     def paintEvent(self, event):
         ROLL_LENGTH = 1000
 
@@ -70,7 +73,6 @@ class PianoRoll(QtWidgets.QWidget):
         # find out where the double click happened
         pos = event.position()
         note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=32, parent=self)
-        note.show()
         self.__sequence.addNote(note=note)
 
         
