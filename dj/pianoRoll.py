@@ -1,12 +1,27 @@
 from PySide6 import QtWidgets
 from PySide6.QtCore import QLineF, QRect
 from PySide6.QtGui import QPainter, QPen, QColor
+import sequence as sq
 import mido
 import midiFunctions as mf
 import time
 
 KEY_HEIGHT = 24
 KEY_WIDTH = 75
+
+# Some static functions that do ui location/midi property conversions
+def x_to_start(x):
+    return x - KEY_WIDTH - 20
+
+def start_to_x(start):
+    return start + KEY_WIDTH + 20
+
+def y_to_pitch(y):
+    return 96 - int((y - 18) / KEY_HEIGHT)
+
+def pitch_to_y(pitch):
+    return (96 - pitch) * KEY_HEIGHT + 18
+
 
 class PianoRoll(QtWidgets.QWidget):
 
@@ -15,38 +30,50 @@ class PianoRoll(QtWidgets.QWidget):
 
         ROLL_LENGTH = 1000
 
-        self.__mid = None
         self.__port = port
+
+        self.layout = QtWidgets.QGridLayout(self)
+
+        # Sequence
+        self.__sequence = sq.Sequence()
+        # self.layout.addWidget(self.__sequence)
 
         # Piano keys
         self.piano = PianoKeys(self.__port)
-
-        self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addWidget(self.piano)
 
-        # Draw the background rectangle
-        # gets drawn when the overridden paintEvent function fires
-        self.__rect = QRect(KEY_WIDTH, 18, ROLL_LENGTH, KEY_HEIGHT * 22)
-
-        # Draw lines that the notes will go along
-        # these guys get drawn when the overridden paintEvent function fires
-        self.__lines = []
-        for y in range(18, KEY_HEIGHT * 23 + 18, KEY_HEIGHT):
-            self.__lines += [QLineF(KEY_WIDTH, y, ROLL_LENGTH + KEY_WIDTH, y)]
-
     def paintEvent(self, event):
+        ROLL_LENGTH = 1000
+
         painter = QPainter(self)
 
         # Draw rectangle
+        self.__rect = QRect(KEY_WIDTH + 20, 18, ROLL_LENGTH, KEY_HEIGHT * 22)
+
         painter.setBrush(QColor(20, 20, 20))
         painter.drawRect(self.__rect)
 
         # Draw lines
+        self.__lines = []
+        for y in range(18, KEY_HEIGHT * 23 + 18, KEY_HEIGHT):
+            self.__lines += [QLineF(KEY_WIDTH + 20, y, ROLL_LENGTH + KEY_WIDTH + 20, y)]
+
         pen = QPen(QColor(100, 100, 100))
         painter.setPen(pen)
         painter.drawLines(self.__lines)
 
         painter.end()
+
+    # This is overriding a function of QWidget that waits for a double click
+    # Using this to create a new note
+    def mouseDoubleClickEvent(self, event):
+        # find out where the double click happened
+        pos = event.position()
+        note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=32, parent=self)
+        note.show()
+        self.__sequence.addNote(note=note)
+
+        
 
         
 

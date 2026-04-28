@@ -1,6 +1,6 @@
 import sys
 from PySide6 import QtWidgets
-import ui.pianoRoll as pr
+import pianoRoll as pr
 import midiFunctions as mf
 import mido
 import time
