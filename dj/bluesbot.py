@@ -19,9 +19,8 @@ class MainWindow(QtWidgets.QWidget):
         # Initialize window
         self.__port = mido.open_output(mido.get_output_names()[0])
 
-        # Piano keys
-        self.piano = pr.PianoKeys(self.__port)
-        self.piano.setMidi(self.__mid)
+        # Piano roll
+        self.piano = pr.PianoRoll(self.__port)
 
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addWidget(self.piano)

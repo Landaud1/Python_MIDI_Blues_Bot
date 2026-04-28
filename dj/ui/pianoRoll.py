@@ -1,10 +1,55 @@
 from PySide6 import QtWidgets
+from PySide6.QtCore import QLineF, QRect
+from PySide6.QtGui import QPainter, QPen, QColor
 import mido
 import midiFunctions as mf
 import time
 
 KEY_HEIGHT = 24
 KEY_WIDTH = 75
+
+class PianoRoll(QtWidgets.QWidget):
+
+    def __init__(self, port):
+        super().__init__()
+
+        ROLL_LENGTH = 1000
+
+        self.__mid = None
+        self.__port = port
+
+        # Piano keys
+        self.piano = PianoKeys(self.__port)
+
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.addWidget(self.piano)
+
+        # Draw the background rectangle
+        # gets drawn when the overridden paintEvent function fires
+        self.__rect = QRect(KEY_WIDTH, 18, ROLL_LENGTH, KEY_HEIGHT * 22)
+
+        # Draw lines that the notes will go along
+        # these guys get drawn when the overridden paintEvent function fires
+        self.__lines = []
+        for y in range(18, KEY_HEIGHT * 23 + 18, KEY_HEIGHT):
+            self.__lines += [QLineF(KEY_WIDTH, y, ROLL_LENGTH + KEY_WIDTH, y)]
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+
+        # Draw rectangle
+        painter.setBrush(QColor(20, 20, 20))
+        painter.drawRect(self.__rect)
+
+        # Draw lines
+        pen = QPen(QColor(100, 100, 100))
+        painter.setPen(pen)
+        painter.drawLines(self.__lines)
+
+        painter.end()
+
+        
+
 
 class PianoKeys(QtWidgets.QWidget):
 
@@ -13,7 +58,6 @@ class PianoKeys(QtWidgets.QWidget):
 
         # Initial values
         self.__port = port
-        self.__mid = None
         self.__keys = []
 
         # Start drawing the keys
@@ -81,12 +125,6 @@ class PianoKeys(QtWidgets.QWidget):
             # iterate
             curr_note -= 1
 
-    def setMidi(self, mid):
-        self.__mid = mid
-        
-        for key in self.__keys:
-            key.setMidi(self.__mid)
-
     def setPort(self, port):
         self.__port = port
 
@@ -100,12 +138,12 @@ class Key(QtWidgets.QPushButton):
 
         self.__port = port
         self.__note = note
-        self.__mid = None
         self.pressed.connect(self._on_click)
     
     def setPort(self, port):
         self.__port = port
 
+    # Overrides the QPushButton's behavior
     def _on_click(self):
         # plays the note
         msg = mido.Message('note_on', note=self.__note, velocity=64)
@@ -113,10 +151,3 @@ class Key(QtWidgets.QPushButton):
         time.sleep(0.5)
         msg = mido.Message('note_off', note=self.__note)
         self.__port.send(msg)
-
-        # Appends the note to current file
-        if not self.__mid == None:
-            mf.append_note(self.__note, 128, self.__mid)
-        
-    def setMidi(self, mid):
-        self.__mid = mid
