@@ -1,7 +1,7 @@
 import pianoRoll as pr
 from PySide6 import QtWidgets
-from PySide6.QtCore import QRect
-from PySide6.QtGui import QPainter, QColor
+from PySide6.QtCore import QRect, QMimeData, Qt
+from PySide6.QtGui import QPainter, QColor, QDrag
 
 
 class Sequence():
@@ -74,3 +74,11 @@ class Note(QtWidgets.QWidget):
     def mouseDoubleClickEvent(self, event):
         self.parent().removeNote(self)
         self.deleteLater()
+
+    # Moves when dragged
+    def mouseMoveEvent(self, e):
+        if e.buttons() == Qt.MouseButton.LeftButton:
+            drag = QDrag(self)
+            mime = QMimeData()
+            drag.setMimeData(mime)
+            drag.exec(Qt.DropAction.MoveAction)

@@ -27,6 +27,7 @@ class PianoRoll(QtWidgets.QWidget):
 
     def __init__(self, port):
         super().__init__()
+        self.setAcceptDrops(True) #for drag/drop notes
 
         ROLL_LENGTH = 1000
 
@@ -74,6 +75,19 @@ class PianoRoll(QtWidgets.QWidget):
         pos = event.position()
         note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=32, parent=self)
         self.__sequence.addNote(note=note)
+
+    # To allow for note dragging
+    def dragEnterEvent(self, event):
+        event.accept()
+
+    # Note moves to new position when dropped
+    def dropEvent(self, event):
+        pos = event.position()
+        print(y_to_pitch(pos.y()))
+        if y_to_pitch(pos.y()) > 60 and y_to_pitch(pos.y()) < 96:
+            widget = event.source()
+            widget.setStart(x_to_start(pos.x()))
+            widget.setPitch(y_to_pitch(pos.y()))
 
         
 
