@@ -1,6 +1,7 @@
 from PySide6 import QtWidgets
 import mido
 import midiFunctions as mf
+import time
 
 KEY_HEIGHT = 24
 KEY_WIDTH = 75
@@ -107,10 +108,11 @@ class Key(QtWidgets.QPushButton):
 
     def _on_click(self):
         # plays the note
-        msg = mido.Message('note_on', note=self.__note, time=0, velocity=64)
+        msg = mido.Message('note_on', note=self.__note, velocity=64)
         self.__port.send(msg)
-        # msg = mido.Message('note_off', note=self.__note, time=256)
-        # self.__port.send(msg)
+        time.sleep(0.5)
+        msg = mido.Message('note_off', note=self.__note)
+        self.__port.send(msg)
 
         # Appends the note to current file
         if not self.__mid == None:
