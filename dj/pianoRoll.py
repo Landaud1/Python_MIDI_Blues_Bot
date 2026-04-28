@@ -8,6 +8,7 @@ import time
 
 KEY_HEIGHT = 24
 KEY_WIDTH = 75
+scale = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1] 
 
 # Some static functions that do ui location/midi property conversions
 def x_to_start(x):
@@ -17,10 +18,31 @@ def start_to_x(start):
     return start + KEY_WIDTH + 20
 
 def y_to_pitch(y):
-    return 96 - int((y - 18) / KEY_HEIGHT)
+    global scale
+    pitch = 96 - int((y - 18) / KEY_HEIGHT)
+    
+    # sub from pitch each black note skipped
+    i = 96
+    while(i > pitch):
+        if scale[(i - 1) % 12] == 0:
+            pitch -= 1
+        i -= 1
+
+    return pitch
+
+
 
 def pitch_to_y(pitch):
-    return (96 - pitch) * KEY_HEIGHT + 18
+    global scale
+    # only progress for each white note
+    y = 18
+    i = 96
+    while(i > pitch):
+        if scale[(i-1) % 12] == 1:
+            y += KEY_HEIGHT
+        i -= 1
+
+    return y
 
 
 class PianoRoll(QtWidgets.QWidget):
@@ -73,8 +95,10 @@ class PianoRoll(QtWidgets.QWidget):
     def mouseDoubleClickEvent(self, event):
         # find out where the double click happened
         pos = event.position()
-        note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=32, parent=self)
-        self.__sequence.addNote(note=note)
+        print(y_to_pitch(pos.y()))
+        if y_to_pitch(pos.y()) >= 60 and y_to_pitch(pos.y()) <= 96: #create a note if it's within range
+            note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=32, parent=self)
+            self.__sequence.addNote(note=note)
 
     # To allow for note dragging
     def dragEnterEvent(self, event):
@@ -84,7 +108,7 @@ class PianoRoll(QtWidgets.QWidget):
     def dropEvent(self, event):
         pos = event.position()
         print(y_to_pitch(pos.y()))
-        if y_to_pitch(pos.y()) > 60 and y_to_pitch(pos.y()) < 96:
+        if y_to_pitch(pos.y()) >= 60 and y_to_pitch(pos.y()) <= 96: #move note if in ranges
             widget = event.source()
             widget.setStart(x_to_start(pos.x()))
             widget.setPitch(y_to_pitch(pos.y()))
@@ -105,7 +129,7 @@ class PianoKeys(QtWidgets.QWidget):
 
         # Start drawing the keys
         # I'm going to use this array to haphazardly draw the keys. It represents the c major scale
-        scale = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1] 
+        global scale
 
         curr_note = 96 # Start at C7
 
