@@ -19,6 +19,17 @@ from mido import MidiFile, MidiTrack, Message
 HARMONICA_LOW  = 60   # C4
 HARMONICA_HIGH = 96   # C7
 
+# Every note that an actual diatonic C harmonica can produce.
+# These are the only MIDI numbers our output is allowed to contain.
+# C4=60, D4=62, E4=64, G4=67, B4=71, C5=72, D5=74, E5=76, F5=77,
+# G5=79, A5=81, B5=83, C6=84, D6=86, E6=88, F6=89, G6=91, A6=93, C7=96
+HARMONICA_NOTES = (
+    60, 62, 64, 67, 71,
+    72, 74, 76, 77, 79, 81, 83,
+    84, 86, 88, 89, 91, 93,
+    96,
+)
+
 
 def octave_to_range(note):
     """Shift a MIDI note by full octaves (+/-12 semitones) until it falls
@@ -34,22 +45,45 @@ def octave_to_range(note):
     return note
 
 
+def closest_harmonica_note(note):
+    """Return the closest MIDI note that the diatonic C harmonica can play.
+
+    Unlike the C major scale, the harmonica skips a few notes inside its
+    own range (for example F4 and A4 do not belong on a diatonic C
+    harmonica). This fits any input MIDI number to the nearest of the
+    19 actually playable holes/breaths.
+
+    Ties (equidistant lower and higher candidate) round DOWN, which is
+    the safer, mellower choice on harmonica.
+    """
+    # If it's already a playable note, keep it.
+    if note in HARMONICA_NOTES:
+        return note
+
+    # Otherwise pick the closest playable note. min() with a tuple key
+    # gives us a stable lower-on-tie behavior because we sort by
+    # (distance, note) ascending.
+    return min(HARMONICA_NOTES, key=lambda n: (abs(n - note), n))
+
+
 def closest_scale_note(note):
-    """Returns the closest MIDI note inside the C major scale"""
-    # C=60, there are 12 semitones => C%12 = 0
+    """Closest MIDI note inside the C major scale.
+
+    Kept for reference; the conversion now uses
+    closest_harmonica_note() which is stricter.
+    """
     scale_c_major = (0, 2, 4, 5, 7, 9, 11)  # C D E F G A B
     pitch_class = note % 12
     if pitch_class in scale_c_major:
         return note
 
-    # Search for the closest note in the scale (lower or higher)
     for offset in range(1, 12):
         if (pitch_class + offset) % 12 in scale_c_major:
             return note + offset
         if (pitch_class - offset) % 12 in scale_c_major:
             return note - offset
 
-    return note  # least possible case, unlikely
+    return note
 
 
 def main():
@@ -86,8 +120,9 @@ def main():
                 # 1) Bring the note into the harmonica's playable range
                 #    (C4..C7) by shifting full octaves up or down.
                 in_range_note = octave_to_range(msg.note)
-                # 2) Fit the in-range note to the closest C major scale.
-                new_note = closest_scale_note(in_range_note)
+                # 2) Snap to the nearest note the diatonic C harmonica
+                #    can actually produce (not just the C major scale).
+                new_note = closest_harmonica_note(in_range_note)
                 new_msg = Message(msg.type, note=new_note,
                                   velocity=msg.velocity, time=msg.time,
                                   channel=msg.channel)
