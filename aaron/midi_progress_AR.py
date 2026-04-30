@@ -30,6 +30,15 @@ HARMONICA_NOTES = (
     96,
 )
 
+# Pitch-class classification on the diatonic C harmonica:
+#   - blow only : C, E         (you can only get them by exhaling)
+#   - draw only : D, F, A, B   (you can only get them by inhaling)
+#   - both      : G            (G appears on both a blow hole and a draw hole)
+# Two notes that are pure-blow + pure-draw cannot physically be played
+# at the same time.
+BLOW_ONLY_PC = {0, 4}        # C, E
+DRAW_ONLY_PC = {2, 5, 9, 11} # D, F, A, B
+
 
 def octave_to_range(note):
     """Shift a MIDI note by full octaves (+/-12 semitones) until it falls
@@ -56,14 +65,21 @@ def closest_harmonica_note(note):
     Ties (equidistant lower and higher candidate) round DOWN, which is
     the safer, mellower choice on harmonica.
     """
-    # If it's already a playable note, keep it.
     if note in HARMONICA_NOTES:
         return note
-
-    # Otherwise pick the closest playable note. min() with a tuple key
-    # gives us a stable lower-on-tie behavior because we sort by
-    # (distance, note) ascending.
     return min(HARMONICA_NOTES, key=lambda n: (abs(n - note), n))
+
+
+def breath_kind(note):
+    """Classify a (harmonica-playable) MIDI note as 'blow', 'draw', or
+    'both' based on its pitch class. 'both' means G, which lives on
+    both a blow hole and a draw hole."""
+    pc = note % 12
+    if pc in BLOW_ONLY_PC:
+        return "blow"
+    if pc in DRAW_ONLY_PC:
+        return "draw"
+    return "both"
 
 
 def closest_scale_note(note):
@@ -107,6 +123,8 @@ def main():
     # 3 - Processing each file note
     # ---------------------------------
 
+    conflicts_dropped = 0  # blow/draw collisions skipped (across all tracks)
+
     for original_track in music_file.tracks:
         new_track = MidiTrack()
         new_mid.tracks.append(new_track)
@@ -114,7 +132,19 @@ def main():
         # Make sure there is an assiggnated instrument
         new_track.append(Message('program_change', program=0, time=0))
 
-        # Processing notes
+        # State machine for blow/draw conflict detection (per track):
+        #   sounding         : original_note_number -> "blow" / "draw" / "both"
+        #                      Notes that have a note_on but no matching note_off yet.
+        #   dropped_pending  : original_note_number -> int. How many of THIS note's
+        #                      note_offs we still have to swallow because we dropped
+        #                      their matching note_on.
+        #   pending_delta    : delta time accumulated from messages we dropped, to
+        #                      be added to the next message we keep so timing is
+        #                      preserved.
+        sounding = {}
+        dropped_pending = {}
+        pending_delta = 0
+
         for msg in original_track:
             if msg.type in ("note_on", "note_off"):
                 # 1) Bring the note into the harmonica's playable range
@@ -123,13 +153,59 @@ def main():
                 # 2) Snap to the nearest note the diatonic C harmonica
                 #    can actually produce (not just the C major scale).
                 new_note = closest_harmonica_note(in_range_note)
-                new_msg = Message(msg.type, note=new_note,
-                                  velocity=msg.velocity, time=msg.time,
-                                  channel=msg.channel)
-                new_track.append(new_msg)
+
+                kind = breath_kind(new_note)
+                # MIDI files often use "note_on with velocity 0" for note_off.
+                is_real_note_on = (msg.type == "note_on" and msg.velocity > 0)
+                is_real_note_off = (msg.type == "note_off"
+                                    or (msg.type == "note_on" and msg.velocity == 0))
+
+                if is_real_note_on:
+                    # Blow vs draw conflict only matters when the new note
+                    # arrives at delta=0 against a note that's still sounding.
+                    conflict = False
+                    if msg.time == 0 and sounding:
+                        current_kinds = set(sounding.values())
+                        if kind == "blow" and "draw" in current_kinds:
+                            conflict = True
+                        elif kind == "draw" and "blow" in current_kinds:
+                            conflict = True
+
+                    if conflict:
+                        # First-come-first-served: keep the older sounding note,
+                        # drop this note_on AND remember to swallow its note_off
+                        # later. Carry its delta forward so timing is preserved.
+                        dropped_pending[msg.note] = dropped_pending.get(msg.note, 0) + 1
+                        pending_delta += msg.time
+                        conflicts_dropped += 1
+                        continue
+
+                    # Accepted: register as sounding, emit the message.
+                    sounding[msg.note] = kind
+                    new_track.append(Message(
+                        msg.type, note=new_note, velocity=msg.velocity,
+                        time=msg.time + pending_delta, channel=msg.channel))
+                    pending_delta = 0
+
+                else:  # real note_off (or note_on velocity=0)
+                    if dropped_pending.get(msg.note, 0) > 0:
+                        # Matching note_on was dropped, swallow this note_off.
+                        dropped_pending[msg.note] -= 1
+                        if dropped_pending[msg.note] == 0:
+                            del dropped_pending[msg.note]
+                        pending_delta += msg.time
+                        continue
+
+                    sounding.pop(msg.note, None)
+                    new_track.append(Message(
+                        msg.type, note=new_note, velocity=msg.velocity,
+                        time=msg.time + pending_delta, channel=msg.channel))
+                    pending_delta = 0
             else:
-                # Copy meta messages and control changes
-                new_track.append(msg)
+                # Copy meta messages and control changes,
+                # absorbing any pending delta from dropped notes.
+                new_track.append(msg.copy(time=msg.time + pending_delta))
+                pending_delta = 0
 
     # ---------------------------------
     # 4 - Saving file
@@ -137,6 +213,7 @@ def main():
     output_file = "output_harmonica.mid"
     new_mid.save(output_file)
     print("File conversion completed, File:", output_file)
-
+    print("Blow/draw conflicts dropped:", conflicts_dropped)
+    
 
 main()
