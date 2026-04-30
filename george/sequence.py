@@ -15,7 +15,7 @@ class Sequence():
         return self.__notes
 
     # Convert from sequence of note class to mido track for eventual midifile write
-    def to_midi_track(self):
+    def note_to_track(self):
         events = []
 
         # Append General start and end messages per note
@@ -35,3 +35,36 @@ class Sequence():
             last_time = abs_time
 
         return track
+
+    def track_to_note(self, track):
+
+        #Dictionary to track times keyed by note
+        active_notes = {}
+
+        current_time = 0
+
+        for msg in track:
+
+            current_time += msg.time
+
+            # Detect beginning of note, add to dictionary
+            if msg.type == 'note_on' and msg.velocity > 0:
+                key = (msg.note, msg.channel)
+                if key not in active_notes:
+                    active_notes[key] = []
+                active_notes[key].append((current_time, msg.velocity))
+
+
+            # Detect end of note, fully define in dictionary
+            elif (msg.type == 'note_off') or (msg.type == 'note_on' and msg.velocity == 0):
+                key = (msg.note, msg.channel)
+
+                if key in active_notes:
+                    start_time, velocity = active_notes[key].pop(0)
+
+                    duration = current_time - start_time
+
+                    note = Note(start=start_time, duration=duration, pitch=msg.note, velocity=velocity, channel=msg.channel)
+                    self.__notes.append(note)
+
+    
