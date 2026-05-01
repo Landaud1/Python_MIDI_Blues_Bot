@@ -103,7 +103,7 @@ class PianoRoll(QtWidgets.QWidget):
         pos = event.position()
         # print(y_to_pitch(pos.y()))
         if y_to_pitch(pos.y()) >= 60 and y_to_pitch(pos.y()) <= 96: #create a note if it's within range
-            note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=1, parent=self)
+            note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=240, parent=self)
             self.__sequence.addNote(note=note)
 
     # To allow for note dragging
