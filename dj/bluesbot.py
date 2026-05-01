@@ -70,15 +70,15 @@ class MainWindow(QtWidgets.QWidget):
 
         # Save the midi file
         if not filename == None:
-            self.__mid.save(filename)
+            self.piano.getMidi().save(filename)
         return
     
     def _play_midi(self):
         # I have to refresh the midi file to fix a bug :(
-        self.__mid = mf.reload_file(self.__mid)
-        self.piano.setMidi(self.__mid)
+        # self.__mid = mf.reload_file(self.__mid)
+        # self.piano.setMidi(self.__mid)
         # Play each msg in the midi file
-        for msg in self.__mid.play():
+        for msg in self.piano.getMidi().play():
             self.__port.send(msg)
         return
     

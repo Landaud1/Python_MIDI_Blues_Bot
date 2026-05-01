@@ -12,10 +12,10 @@ scale = [1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]
 
 # Some static functions that do ui location/midi property conversions
 def x_to_start(x):
-    return x - KEY_WIDTH - 20
+    return (x - KEY_WIDTH - 20) / sq.TIME_SCALE_FACTOR
 
 def start_to_x(start):
-    return start + KEY_WIDTH + 20
+    return (start * sq.TIME_SCALE_FACTOR) + KEY_WIDTH + 20
 
 def y_to_pitch(y):
     global scale
@@ -68,6 +68,14 @@ class PianoRoll(QtWidgets.QWidget):
     def removeNote(self, note):
         self.__sequence.removeNote(note)
 
+    def getMidi(self):
+        return self.__sequence.note_to_track()
+    
+    def setMidi(self, mid):
+        self.__sequence.track_to_note(mid, self)
+
+    # UI Stuff
+
     def paintEvent(self, event):
         ROLL_LENGTH = 1000
 
@@ -95,9 +103,9 @@ class PianoRoll(QtWidgets.QWidget):
     def mouseDoubleClickEvent(self, event):
         # find out where the double click happened
         pos = event.position()
-        print(y_to_pitch(pos.y()))
+        # print(y_to_pitch(pos.y()))
         if y_to_pitch(pos.y()) >= 60 and y_to_pitch(pos.y()) <= 96: #create a note if it's within range
-            note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=32, parent=self)
+            note = sq.Note(start=x_to_start(pos.x()), pitch=y_to_pitch(pos.y()), duration=1, parent=self)
             self.__sequence.addNote(note=note)
 
     # To allow for note dragging
