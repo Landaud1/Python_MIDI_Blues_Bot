@@ -70,6 +70,7 @@ class PianoRoll(QtWidgets.QWidget):
         return self.__sequence.note_to_track()
     
     def setMidi(self, mid):
+        mid = mf.convert_midi(mid)
         self.__sequence.track_to_note(mid, self)
 
     # UI Stuff
