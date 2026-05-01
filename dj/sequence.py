@@ -4,7 +4,7 @@ from PySide6 import QtWidgets
 from PySide6.QtCore import QRect, QMimeData, Qt
 from PySide6.QtGui import QPainter, QColor, QDrag
 
-TIME_SCALE_FACTOR = 128
+TIME_SCALE_FACTOR = 0.125
 
 
 class Sequence():
@@ -26,9 +26,8 @@ class Sequence():
 
         # Append General start and end messages per note
         for n in self.__notes:
-            events.append((n.getStart(), md.Message('note_on',  note=n.getPitch(), velocity=n.getVelocity(), channel=n.getChannel())))
-            events.append((n.end,       md.Message('note_off', note=n.getPitch(), velocity=0,               channel=n.getChannel())))
-            print(f"{n.getStart()}, {n.end}")
+            events.append((int(n.getStart()), md.Message('note_on',  note=n.getPitch(), velocity=n.getVelocity(), channel=n.getChannel())))
+            events.append((int(n.end),       md.Message('note_off', note=n.getPitch(), velocity=0,               channel=n.getChannel())))
 
         # Sort new events by timing
         events.sort(key=lambda e: (e[0], e[1].type == 'note_on'))
@@ -42,19 +41,19 @@ class Sequence():
             last_time = abs_time
 
         # Add to midi file
-        mid = md.MidiFile(ticks_per_beat = self.__tpb)
+        mid = md.MidiFile(ticks_per_beat=self.__tpb)
         mid.tracks.append(track)
         return mid
 
-    def track_to_note(self, track, parent):
-        # self.__tpb = track.ticks_per_beat
+    def track_to_note(self, mid, parent):
+        self.__tpb = mid.ticks_per_beat
 
         #Dictionary to track times keyed by note
         active_notes = {}
 
         current_time = 0
 
-        for msg in track:
+        for msg in mid.tracks[0]:
 
             current_time += msg.time
 

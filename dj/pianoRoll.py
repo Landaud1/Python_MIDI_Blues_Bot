@@ -51,8 +51,6 @@ class PianoRoll(QtWidgets.QWidget):
         super().__init__()
         self.setAcceptDrops(True) #for drag/drop notes
 
-        ROLL_LENGTH = 1000
-
         self.__port = port
 
         self.layout = QtWidgets.QGridLayout(self)
@@ -77,7 +75,7 @@ class PianoRoll(QtWidgets.QWidget):
     # UI Stuff
 
     def paintEvent(self, event):
-        ROLL_LENGTH = 1000
+        ROLL_LENGTH = 3000
 
         painter = QPainter(self)
 
