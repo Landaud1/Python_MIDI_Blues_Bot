@@ -83,7 +83,7 @@ class MainWindow(QtWidgets.QWidget):
         return
     
     def _convert_midi(self):
-        self.__mid = mf.convert_diatonic(self.__mid)
+        self.__mid = mf.convert_midi(self.__mid)
         self.piano.setMidi(self.__mid)
         return
 
